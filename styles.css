@@ -7,9 +7,14 @@
 
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{height:100%; margin:0;}
+/* Wallpaper backstop on <html>: fills the whole screen (incl. the home-indicator
+   safe area) behind every screen, so no black strip can show at top or bottom.
+   Uses separate size/position props so it stays valid whether --wall is a photo
+   url (which carries its own position) or the default gradient. */
+html{ background:#000 var(--wall); background-size:cover; background-position:center; background-repeat:no-repeat; }
 body{
   font-family:var(--font);
-  background:#000 var(--wall) center/cover no-repeat;
+  background:transparent;
   color:#fff;
   overflow:hidden;
   position:fixed; inset:0;
