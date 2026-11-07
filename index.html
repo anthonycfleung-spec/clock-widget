@@ -21,6 +21,7 @@
 
 <!-- ============ LOCK SCREEN ============ -->
 <section id="screen-lock" class="screen is-active" data-screen="lock">
+  <img id="lock-shot" class="shot-img" alt="" hidden>
   <div class="lock-wrap">
     <div class="lock-top">
       <div class="lock-date" id="lock-date">Sat Nov 7</div>
@@ -64,7 +65,8 @@
 <!-- ============ PASSCODE SCREEN ============ -->
 <section id="screen-passcode" class="screen" data-screen="passcode">
   <div class="di-island" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2.4a4.4 4.4 0 0 0-4.4 4.4V10H6.6A1.6 1.6 0 0 0 5 11.6v8.2a1.6 1.6 0 0 0 1.6 1.6h10.8a1.6 1.6 0 0 0 1.6-1.6v-8.2a1.6 1.6 0 0 0-1.6-1.6h-1V6.8A4.4 4.4 0 0 0 12 2.4zm2.6 7.6H9.4V6.8a2.6 2.6 0 0 1 5.2 0z"/></svg>
+    <svg class="di-lock" viewBox="0 0 24 24" fill="#c9c9cf"><path d="M12 2.4a4.4 4.4 0 0 0-4.4 4.4V10H6.6A1.6 1.6 0 0 0 5 11.6v8.2a1.6 1.6 0 0 0 1.6 1.6h10.8a1.6 1.6 0 0 0 1.6-1.6v-8.2a1.6 1.6 0 0 0-1.6-1.6h-1V6.8A4.4 4.4 0 0 0 12 2.4zm2.6 7.6H9.4V6.8a2.6 2.6 0 0 1 5.2 0z"/></svg>
+    <svg class="di-face" viewBox="0 0 24 24" fill="none" stroke="#30d158" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6.4A2.4 2.4 0 0 1 6.4 4H8M16 4h1.6A2.4 2.4 0 0 1 20 6.4V8M20 16v1.6a2.4 2.4 0 0 1-2.4 2.4H16M8 20H6.4A2.4 2.4 0 0 1 4 17.6V16"/><path d="M9 9.5v1.3M15 9.5v1.3M12 9.5v3l-1 1"/><path d="M9.3 15.2c.7.7 1.7 1.1 2.7 1.1s2-.4 2.7-1.1"/></svg>
   </div>
   <div class="pc-wrap">
     <!-- long-press this title area to reach the calorie app (performer only) -->
@@ -93,6 +95,17 @@
       <button class="pc-text" id="pc-emergency">Emergency</button>
       <button class="pc-text" id="pc-cancel">Cancel</button>
     </div>
+  </div>
+  <div class="home-indicator"></div>
+</section>
+
+<!-- ============ REVEAL (home-screen screenshot + badge over the folder) ============ -->
+<section id="screen-reveal" class="screen" data-screen="reveal">
+  <img id="reveal-img" class="shot-img" alt="" hidden>
+  <button id="reveal-badge" class="shot-badge" type="button">0</button>
+  <div class="place-bar" id="place-bar" hidden>
+    <span>Tap where the badge should sit (over your folder)</span>
+    <button id="place-done">Done</button>
   </div>
   <div class="home-indicator"></div>
 </section>
@@ -160,11 +173,26 @@
           </select>
         </label>
         <label class="fld">
-          <span>Calendar event text (lock screen)</span>
+          <span>Lock screen screenshot &mdash; shown as the lock screen (<b id="set-lockshot-state">none</b>)</span>
+          <input id="set-lockshot" type="file" accept="image/*">
+        </label>
+        <label class="fld">
+          <span>Home screen screenshot &mdash; shown as the reveal (<b id="set-homeshot-state">none</b>)</span>
+          <input id="set-homeshot" type="file" accept="image/*">
+        </label>
+        <div class="fld-row">
+          <button class="btn btn-primary" id="set-place-badge">Set badge position</button>
+        </div>
+        <div class="fld-row">
+          <button class="btn btn-ghost" id="set-lockshot-clear">Remove lock shot</button>
+          <button class="btn btn-ghost" id="set-homeshot-clear">Remove home shot</button>
+        </div>
+        <label class="fld">
+          <span>Calendar event text (only used if no lock screenshot)</span>
           <input id="set-event" placeholder="Do duo lingo">
         </label>
         <label class="fld">
-          <span>Lock screen photo (upload your own)</span>
+          <span>Lock screen wallpaper (only used if no lock screenshot)</span>
           <input id="set-wallpaper" type="file" accept="image/*">
         </label>
         <div class="fld-row">

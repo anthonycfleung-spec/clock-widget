@@ -6,6 +6,8 @@
 }
 
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+/* Make the `hidden` attribute win over any display rule (flex/grid elements). */
+[hidden]{display:none !important;}
 html,body{height:100%; margin:0;}
 /* Wallpaper backstop on <html>: fills the whole screen (incl. the home-indicator
    safe area) behind every screen, so no black strip can show at top or bottom.
@@ -84,10 +86,36 @@ body{
 .di-island{
   position:fixed; top:11px; left:50%; transform:translateX(-50%);
   width:125px; height:37px; background:#000; border-radius:20px; z-index:45;
-  display:flex; align-items:center; justify-content:flex-start; padding-left:17px;
-  gap:8px; pointer-events:none;
+  display:flex; align-items:center; justify-content:space-between; padding:0 16px;
+  pointer-events:none;
 }
-.di-island svg{width:15px; height:15px; opacity:.92;}
+.di-island svg{width:15px; height:15px;}
+.di-island .di-face{width:17px; height:17px;}
+
+/* ---------- full-bleed screenshots (lock + reveal) ---------- */
+.shot-img{
+  position:fixed; inset:0; width:100%; height:100%; object-fit:cover;
+  z-index:5; pointer-events:none;
+}
+#screen-reveal{ background:#000; }
+.shot-badge{
+  position:absolute; transform:translate(-50%,-50%); z-index:10;
+  min-width:26px; height:26px; padding:0 7px; border-radius:13px; border:none;
+  background:#ff3b30; color:#fff; font-size:15px; font-weight:600; line-height:1;
+  font-family:var(--font); font-variant-numeric:tabular-nums; letter-spacing:.5px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 0 2px rgba(0,0,0,.14); pointer-events:none;
+}
+.shot-badge.placing{ pointer-events:none; box-shadow:0 0 0 2px #fff, 0 0 0 5px rgba(255,255,255,.35); }
+.place-bar{
+  position:fixed; left:0; right:0; bottom:calc(var(--sa-bot) + 20px); z-index:20;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin:0 16px; padding:12px 14px; border-radius:14px;
+  background:rgba(28,28,30,.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+}
+.place-bar span{font-size:13px; color:#d8d8dc; line-height:1.3;}
+.place-bar button{background:#0a84ff; border:none; color:#fff; font-weight:600; font-size:15px;
+  padding:9px 16px; border-radius:10px; font-family:var(--font); flex:none;}
 
 /* ---------- PASSCODE ---------- */
 #screen-passcode{ background:rgba(0,0,0,.5); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px); }

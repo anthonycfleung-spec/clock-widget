@@ -4,15 +4,19 @@
 
   const LS_LOG = 'mindlock.log';
   const LS_CFG = 'mindlock.cfg';
+  const LS_LOCKSHOT = 'mindlock.lockshot';   // data URL of a real lock-screen screenshot
+  const LS_HOMESHOT = 'mindlock.homeshot';   // data URL of a real home-screen screenshot
   const CAP_MAX = 50;
 
   const DEFAULT_CFG = {
-    unlockAttempt: 3,        // after this many tries the passcode returns to the lock screen (0 = never)
+    unlockAttempt: 3,        // after this many tries -> reveal (home screenshot) or lock screen
     master: '0000',          // typed on keypad -> opens the calorie app (blank = disabled)
-    badgeSrc: 'latest',      // 'latest' | 'first' — which captured code lands on the real app icon
+    badgeSrc: 'latest',      // 'latest' | 'first' — which captured code the badge shows
     dateOrder: 'MMDD',       // 'MMDD' | 'DDMM'
     eventTitle: 'Do duo lingo',
-    wallpaper: ''            // data URL, optional
+    wallpaper: '',           // data URL, optional (rendered lock fallback)
+    badgeX: 78,              // reveal badge position, % of width  (over the folder)
+    badgeY: 20               // reveal badge position, % of height
   };
 
   const ZODIAC = [
@@ -31,6 +35,9 @@
   const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
   let cfg = Object.assign({}, DEFAULT_CFG, readJSON(LS_CFG, {}));
   let log = readJSON(LS_LOG, []);
+  let lockShot = '', homeShot = '';
+  try { lockShot = localStorage.getItem(LS_LOCKSHOT) || ''; } catch {}
+  try { homeShot = localStorage.getItem(LS_HOMESHOT) || ''; } catch {}
   const saveCfg = () => writeJSON(LS_CFG, cfg);
   const saveLog = () => writeJSON(LS_LOG, log);
 
@@ -49,12 +56,33 @@
     return { m, d };
   }
   function zodiacFor(m, d) {
-    // ZODIAC holds each sign's end cutoff in chronological order; the sign
-    // "owns" every date up to and including its cutoff (and after the prior one).
     for (const [name, sym, zm, zd] of ZODIAC) {
       if (m < zm || (m === zm && d <= zd)) return { name, sym };
     }
     return { name: 'Capricorn', sym: '♑' };
+  }
+
+  // Downscale an uploaded screenshot and re-encode as JPEG so it fits in storage.
+  function fileToScaledDataURL(file, maxW, cb) {
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        try { cb(c.toDataURL('image/jpeg', 0.85)); } catch { cb(r.result); }
+      };
+      img.onerror = () => cb(r.result);
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  }
+  function tryStore(key, val) {
+    try { localStorage.setItem(key, val); return true; }
+    catch { alert('That image is too large to save on this device. Try a smaller screenshot.'); return false; }
   }
 
   // ---------- real app-icon badge (Badging API, installed PWA on iOS 16.4+) ----------
@@ -76,9 +104,11 @@
   }
 
   // ---------- screens ----------
+  let placing = false;
   function show(name) {
     $$('.screen').forEach(s => s.classList.toggle('is-active', s.dataset.screen === name));
-    if (name === 'lock') { attempts = 0; entry = ''; renderDots(); }
+    if (name === 'lock') { attempts = 0; entry = ''; renderDots(); applyLockShot(); }
+    if (name === 'reveal') renderReveal();
     if (name === 'cal') { closeSheet(); renderCal(); }
   }
 
@@ -95,7 +125,7 @@
     if (cd) cd.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
-  // ---------- wallpaper / event ----------
+  // ---------- wallpaper / event / screenshots ----------
   function applyCfgToUI() {
     if (cfg.wallpaper) {
       document.documentElement.style.setProperty('--wall', `url("${cfg.wallpaper}") center/cover no-repeat`);
@@ -104,12 +134,20 @@
     }
     $('#w-event-title').textContent = cfg.eventTitle || 'Do duo lingo';
   }
+  function applyLockShot() {
+    const img = $('#lock-shot');
+    if (lockShot) { img.src = lockShot; img.hidden = false; }
+    else { img.hidden = true; img.removeAttribute('src'); }
+  }
 
   // ---------- passcode ----------
   let entry = '';
   let attempts = 0;
   const dots = $$('#pc-dots span');
-  function renderDots() { dots.forEach((s, i) => s.classList.toggle('filled', i < entry.length)); }
+  function renderDots() {
+    dots.forEach((s, i) => s.classList.toggle('filled', i < entry.length));
+    $('#pc-cancel').textContent = entry.length ? 'Delete' : 'Cancel';
+  }
   function resetEntry() { entry = ''; renderDots(); }
 
   function pressDigit(d) {
@@ -127,9 +165,8 @@
       attempts++;
       const n = parseInt(cfg.unlockAttempt, 10) || 0;
       if (n > 0 && attempts >= n) {
-        // Quietly return to the lock screen for a natural hand-back; the captured
-        // number is now on the real app icon as a badge (swipe up to the home screen).
-        setTimeout(() => { resetEntry(); attempts = 0; show('lock'); }, 300);
+        // Reveal: the home-screen screenshot with the badge over the folder.
+        setTimeout(() => { resetEntry(); attempts = 0; show(homeShot ? 'reveal' : 'lock'); }, 240);
       } else {
         setTimeout(fail, 130);
       }
@@ -147,7 +184,26 @@
     syncBadge();
   }
 
-  // ---------- calorie app (reveal + settings) ----------
+  // ---------- reveal (home screenshot + badge) ----------
+  function positionBadge() {
+    const b = $('#reveal-badge');
+    b.style.left = cfg.badgeX + '%';
+    b.style.top = cfg.badgeY + '%';
+  }
+  function renderReveal() {
+    const img = $('#reveal-img');
+    if (homeShot) { img.src = homeShot; img.hidden = false; }
+    else { img.hidden = true; img.removeAttribute('src'); }
+    const rc = revealCode();
+    const b = $('#reveal-badge');
+    b.textContent = rc || '0';
+    b.hidden = !rc && !placing;
+    positionBadge();
+    b.classList.toggle('placing', placing);
+    $('#place-bar').hidden = !placing;
+  }
+
+  // ---------- calorie app (reveal decode + settings) ----------
   function mealIcon(hr) {
     if (hr < 11) return '🥞';
     if (hr < 16) return '🥗';
@@ -161,7 +217,6 @@
     const list = $('#cal-list'); list.innerHTML = '';
     $('#cal-count').textContent = log.length + (log.length === 1 ? ' entry' : ' entries');
 
-    // Decorative summary that drifts with the number of entries.
     const food = Math.min(2000, 320 + log.length * 80);
     const remain = 2000 - food;
     $('#cal-food').textContent = food.toLocaleString();
@@ -214,12 +269,14 @@
     $('#set-badge-src').value = cfg.badgeSrc;
     $('#set-dateorder').value = cfg.dateOrder;
     $('#set-event').value = cfg.eventTitle || '';
+    $('#set-lockshot-state').textContent = lockShot ? 'uploaded ✓' : 'none';
+    $('#set-homeshot-state').textContent = homeShot ? 'uploaded ✓' : 'none';
     $('#menu-help').textContent =
-      'Get in: long-press the "Enter Passcode" title, or type your secret entry code (' +
-      (cfg.master || 'off') + '). Reveal: every code entered lands on the real app icon as a ' +
-      'red badge — take the phone back, swipe up to the home screen, and read the number off the ' +
-      'icon. After ' + (cfg.unlockAttempt || '∞') + ' tries the passcode screen returns to the ' +
-      'lock screen on its own. This list decodes each code to a star sign + birthday.';
+      'Get in: long-press the "Enter Passcode" title, or type your secret code (' +
+      (cfg.master || 'off') + '). Upload a real screenshot of your lock screen and home screen for a ' +
+      'pixel-perfect prop. After ' + (cfg.unlockAttempt || '∞') + ' tries it shows your home screenshot ' +
+      'with the entered number badged over your folder — set that spot with "Set badge position". This ' +
+      'list decodes each code to a star sign + birthday.';
     $('#cal-sheet').hidden = false;
   }
   function closeSheet() { $('#cal-sheet').hidden = true; }
@@ -262,6 +319,7 @@
   // ---------- wiring ----------
   function init() {
     applyCfgToUI();
+    applyLockShot();
     tick();
     setInterval(tick, 15000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
@@ -277,17 +335,31 @@
       const k = e.target.closest('.key[data-d]');
       if (k) pressDigit(k.dataset.d);
     });
-    $('#pc-cancel').addEventListener('click', () => { resetEntry(); show('lock'); });
+    // Right foot button: Delete a digit, or Cancel back to lock when empty.
+    $('#pc-cancel').addEventListener('click', () => {
+      if (entry.length > 0) { entry = entry.slice(0, -1); renderDots(); }
+      else { resetEntry(); show('lock'); }
+    });
     $('#pc-emergency').addEventListener('click', e => e.preventDefault());
 
     // Secret entry: long-press passcode title -> calorie app
     onLongPress($('#pc-title'), 850, () => { resetEntry(); show('cal'); });
 
+    // Reveal screen: tap to place the badge (placement mode); long-press -> calorie app
+    $('#screen-reveal').addEventListener('click', e => {
+      if (!placing || e.target.closest('#place-bar')) return;
+      const r = $('#screen-reveal').getBoundingClientRect();
+      cfg.badgeX = +(((e.clientX - r.left) / r.width) * 100).toFixed(1);
+      cfg.badgeY = +(((e.clientY - r.top) / r.height) * 100).toFixed(1);
+      positionBadge();
+    });
+    onLongPress($('#screen-reveal'), 850, () => { if (!placing) show('cal'); });
+    $('#place-done').addEventListener('click', () => { placing = false; saveCfg(); show('cal'); });
+
     // Calorie app: gear -> settings sheet
     $('#cal-gear').addEventListener('click', openSheet);
     $('#cal-sheet-close').addEventListener('click', closeSheet);
     $('#cal-to-lock').addEventListener('click', () => { closeSheet(); show('lock'); });
-    // tap the dimmed backdrop (outside the card) closes the sheet
     $('#cal-sheet').addEventListener('click', e => { if (e.target === $('#cal-sheet')) closeSheet(); });
 
     // Settings fields
@@ -300,12 +372,36 @@
     $('#set-badge-src').addEventListener('change', e => { cfg.badgeSrc = e.target.value; saveCfg(); syncBadge(); });
     $('#set-dateorder').addEventListener('change', e => { cfg.dateOrder = e.target.value; saveCfg(); renderCal(); });
     $('#set-event').addEventListener('change', e => { cfg.eventTitle = e.target.value; saveCfg(); applyCfgToUI(); });
+
+    $('#set-lockshot').addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      fileToScaledDataURL(f, 1100, url => {
+        if (tryStore(LS_LOCKSHOT, url)) { lockShot = url; applyLockShot(); $('#set-lockshot-state').textContent = 'uploaded ✓'; }
+      });
+    });
+    $('#set-homeshot').addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      fileToScaledDataURL(f, 1100, url => {
+        if (tryStore(LS_HOMESHOT, url)) { homeShot = url; $('#set-homeshot-state').textContent = 'uploaded ✓'; }
+      });
+    });
+    $('#set-place-badge').addEventListener('click', e => {
+      e.preventDefault();
+      if (!homeShot) { alert('Upload a home-screen screenshot first.'); return; }
+      placing = true; closeSheet(); show('reveal');
+    });
+    $('#set-lockshot-clear').addEventListener('click', e => {
+      e.preventDefault(); lockShot = ''; try { localStorage.removeItem(LS_LOCKSHOT); } catch {}
+      applyLockShot(); $('#set-lockshot-state').textContent = 'none';
+    });
+    $('#set-homeshot-clear').addEventListener('click', e => {
+      e.preventDefault(); homeShot = ''; try { localStorage.removeItem(LS_HOMESHOT); } catch {}
+      $('#set-homeshot-state').textContent = 'none';
+    });
+
     $('#set-wallpaper').addEventListener('change', e => {
-      const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      const r = new FileReader();
-      r.onload = () => { cfg.wallpaper = r.result; saveCfg(); applyCfgToUI(); };
-      r.readAsDataURL(f);
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      fileToScaledDataURL(f, 1100, url => { cfg.wallpaper = url; saveCfg(); applyCfgToUI(); });
     });
     $('#set-wallpaper-clear').addEventListener('click', e => {
       e.preventDefault(); cfg.wallpaper = ''; saveCfg(); applyCfgToUI();
