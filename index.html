@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clock</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<!-- iOS home-screen web app -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Clock">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- No faux status bar: iOS draws the real one (live time + battery) in both Safari and the installed app. -->
+
+<!-- ============ LOCK SCREEN ============ -->
+<section id="screen-lock" class="screen is-active" data-screen="lock">
+  <div class="lock-wrap">
+    <div class="lock-top">
+      <div class="lock-date" id="lock-date">Sat Nov 7</div>
+      <div class="lock-time" id="lock-time">4:58</div>
+    </div>
+
+    <div class="lock-spacer"></div>
+
+    <div class="lock-bottom">
+      <div class="lock-widgets">
+        <div class="wtile">
+          <span class="wi"><svg viewBox="0 0 24 24" fill="#fff"><path d="M20.6 13.3a8.4 8.4 0 1 1-9.9-9.9 6.7 6.7 0 0 0 9.9 9.9z"/></svg></span>
+          <b id="w-sleep">75%</b>
+        </div>
+        <div class="wtile">
+          <span class="wi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.1" fill="#fff" stroke="none"/><path d="M12 7.8c-1.9 1-3.1 2.9-3.1 5.1 0 .6.4 1 1 1h4.2c.6 0 1-.4 1-1 0-2.2-1.2-4.1-3.1-5.1z"/><path d="M5.5 18.8c1.6-1.9 3.8-3 6.5-3s5 1.1 6.6 3c-1.9 1.3-4.1 2-6.6 2s-4.7-.7-6.5-2z"/></svg></span>
+          <b id="w-med">53%</b>
+        </div>
+        <div class="wtile">
+          <span class="wi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h16"/><path d="M6.5 8.5v7M17.5 8.5v7M3 10.2v3.6M21 10.2v3.6"/></svg></span>
+          <b id="w-weight">13.2</b>
+        </div>
+        <div class="wtile wtile-event">
+          <span class="wi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/></svg></span>
+          <div class="wevent">
+            <small id="w-event-time">11 PM&ndash;Nov 8 at 12 AM</small>
+            <b id="w-event-title">Do duo lingo</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="lock-actions">
+        <button class="lk-round" id="lk-flash" aria-label="Flashlight"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8.5 3h7l-.6 3.3a1 1 0 0 1-1 .8h-3.8a1 1 0 0 1-1-.8zM9.7 8.1h4.6l-.7 11.4a1.1 1.1 0 0 1-1.1 1h-1a1.1 1.1 0 0 1-1.1-1z"/></svg></button>
+        <div class="lk-hint" id="lk-hint">swipe up to unlock</div>
+        <button class="lk-round" id="lk-cam" aria-label="Camera"><svg viewBox="0 0 24 24" fill="#fff"><path d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.8zM12 9.1a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8zm0 1.9a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></svg></button>
+      </div>
+    </div>
+  </div>
+  <div class="home-indicator"></div>
+</section>
+
+<!-- ============ PASSCODE SCREEN ============ -->
+<section id="screen-passcode" class="screen" data-screen="passcode">
+  <div class="pc-wrap">
+    <!-- long-press this title area to reach the calorie app (performer only) -->
+    <div class="pc-title" id="pc-title">Enter Passcode</div>
+    <div class="pc-dots" id="pc-dots">
+      <span></span><span></span><span></span><span></span>
+    </div>
+
+    <div class="keypad" id="keypad">
+      <button class="key" data-d="1"><b>1</b></button>
+      <button class="key" data-d="2"><b>2</b><i>A B C</i></button>
+      <button class="key" data-d="3"><b>3</b><i>D E F</i></button>
+      <button class="key" data-d="4"><b>4</b><i>G H I</i></button>
+      <button class="key" data-d="5"><b>5</b><i>J K L</i></button>
+      <button class="key" data-d="6"><b>6</b><i>M N O</i></button>
+      <button class="key" data-d="7"><b>7</b><i>P Q R S</i></button>
+      <button class="key" data-d="8"><b>8</b><i>T U V</i></button>
+      <button class="key" data-d="9"><b>9</b><i>W X Y Z</i></button>
+      <span class="key key-blank"></span>
+      <button class="key" data-d="0"><b>0</b></button>
+      <span class="key key-blank"></span>
+    </div>
+
+    <div class="pc-foot">
+      <button class="pc-text" id="pc-emergency">Emergency</button>
+      <button class="pc-text" id="pc-cancel">Cancel</button>
+    </div>
+  </div>
+  <div class="home-indicator"></div>
+</section>
+
+<!-- ============ CALORIE APP (performer base: reveal + settings) ============ -->
+<section id="screen-cal" class="screen screen-cal" data-screen="cal">
+  <div class="cal-wrap" id="cal-wrap">
+    <header class="cal-top">
+      <div>
+        <h1 class="cal-title">Today</h1>
+        <div class="cal-date" id="cal-day">Sat, Nov 7</div>
+      </div>
+      <button class="cal-gear" id="cal-gear" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.6a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.2a2 2 0 0 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H2a2 2 0 0 1 0-4h.1a1.6 1.6 0 0 0 1.2-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V2a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H22a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      </button>
+    </header>
+
+    <div class="cal-summary">
+      <div class="cal-ring">
+        <svg viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="52"/>
+          <circle class="ring-fg" id="cal-ring-fg" cx="60" cy="60" r="52"/>
+        </svg>
+        <div class="cal-ring-c"><b id="cal-remain">1,420</b><small>remaining</small></div>
+      </div>
+      <ul class="cal-macros">
+        <li><span>Base Goal</span><b>2,000</b></li>
+        <li><span>Food</span><b id="cal-food">580</b></li>
+        <li><span>Exercise</span><b>0</b></li>
+      </ul>
+    </div>
+
+    <div class="cal-sec-head"><span>Log</span><span id="cal-count">0 entries</span></div>
+    <div class="cal-list" id="cal-list"><!-- entries injected by app.js --></div>
+  </div>
+
+  <!-- settings sheet -->
+  <div class="cal-sheet" id="cal-sheet" hidden>
+    <div class="cal-sheet-card">
+      <header class="sheet-head">
+        <h2>Profile &amp; Goals</h2>
+        <button class="sheet-done" id="cal-sheet-close">Done</button>
+      </header>
+      <div class="sheet-body">
+        <label class="fld">
+          <span>Lock after # tries (returns to lock screen; 0 = never)</span>
+          <input id="set-attempts" inputmode="numeric" maxlength="2" placeholder="3">
+        </label>
+        <label class="fld">
+          <span>Secret entry code (type on keypad &rarr; opens this app)</span>
+          <input id="set-master" inputmode="numeric" maxlength="4" placeholder="0000">
+        </label>
+        <label class="fld">
+          <span>Badge shows (which captured code lands on the real app icon)</span>
+          <select id="set-badge-src">
+            <option value="latest">Most recent code</option>
+            <option value="first">First code</option>
+          </select>
+        </label>
+        <label class="fld">
+          <span>Date order</span>
+          <select id="set-dateorder">
+            <option value="MMDD">MMDD (0617 = Jun 17)</option>
+            <option value="DDMM">DDMM (1706 = 17 Jun)</option>
+          </select>
+        </label>
+        <label class="fld">
+          <span>Calendar event text (lock screen)</span>
+          <input id="set-event" placeholder="Do duo lingo">
+        </label>
+        <label class="fld">
+          <span>Lock screen photo (upload your own)</span>
+          <input id="set-wallpaper" type="file" accept="image/*">
+        </label>
+        <div class="fld-row">
+          <button class="btn btn-ghost" id="set-wallpaper-clear">Reset photo</button>
+          <button class="btn btn-ghost" id="set-badge-clear">Clear icon badge</button>
+        </div>
+        <div class="fld-row">
+          <button class="btn btn-danger" id="set-clear">Clear captured log</button>
+        </div>
+        <button class="btn btn-primary btn-wide" id="cal-to-lock">Return to lock screen</button>
+        <p class="menu-note" id="menu-help"></p>
+      </div>
+    </div>
+  </div>
+  <div class="home-indicator"></div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
