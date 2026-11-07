@@ -1,5 +1,5 @@
 /* Offline cache for MindLock. Bump CACHE to force an update. */
-const CACHE = 'mindlock-v12';
+const CACHE = 'mindlock-v13';
 const ASSETS = [
   './',
   './index.html',

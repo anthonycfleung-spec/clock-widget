@@ -135,9 +135,9 @@
     $('#w-event-title').textContent = cfg.eventTitle || 'Do duo lingo';
   }
   function applyLockShot() {
-    const img = $('#lock-shot');
-    if (lockShot) { img.src = lockShot; img.hidden = false; }
-    else { img.hidden = true; img.removeAttribute('src'); }
+    const el = $('#lock-shot');
+    if (lockShot) { el.style.backgroundImage = `url("${lockShot}")`; el.hidden = false; }
+    else { el.hidden = true; el.style.backgroundImage = ''; }
   }
 
   // ---------- passcode ----------
@@ -192,8 +192,8 @@
   }
   function renderReveal() {
     const img = $('#reveal-img');
-    if (homeShot) { img.src = homeShot; img.hidden = false; }
-    else { img.hidden = true; img.removeAttribute('src'); }
+    if (homeShot) { img.style.backgroundImage = `url("${homeShot}")`; img.hidden = false; }
+    else { img.hidden = true; img.style.backgroundImage = ''; }
     const rc = revealCode();
     const b = $('#reveal-badge');
     b.textContent = rc || '0';
