@@ -79,7 +79,8 @@ body{
 .di-island{
   position:fixed; top:11px; left:50%; transform:translateX(-50%);
   width:125px; height:37px; background:#000; border-radius:20px; z-index:45;
-  display:flex; align-items:center; justify-content:center; gap:8px; pointer-events:none;
+  display:flex; align-items:center; justify-content:flex-start; padding-left:17px;
+  gap:8px; pointer-events:none;
 }
 .di-island svg{width:15px; height:15px; opacity:.92;}
 
