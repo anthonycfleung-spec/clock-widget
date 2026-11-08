@@ -3,6 +3,7 @@
   --sa-bot: env(safe-area-inset-bottom, 0px);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --wall: linear-gradient(160deg,#2b2622 0%,#1c1a18 45%,#100f0e 100%);
+  --edge: #000;   /* colour of the home-indicator safe-area strip; sampled from the wallpaper bottom to blend the iOS standalone black bar */
 }
 
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -13,7 +14,7 @@ html,body{height:100%; min-height:100dvh; margin:0;}
    safe area) behind every screen, so no black strip can show at top or bottom.
    Uses separate size/position props so it stays valid whether --wall is a photo
    url (which carries its own position) or the default gradient. */
-html{ background:#000 var(--wall); background-size:cover; background-position:center; background-repeat:no-repeat; background-attachment:fixed; }
+html{ background:var(--edge) var(--wall); background-size:cover; background-position:center; background-repeat:no-repeat; background-attachment:fixed; }
 body{
   font-family:var(--font);
   background:transparent;

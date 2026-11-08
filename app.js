@@ -2,7 +2,7 @@
 (() => {
   'use strict';
 
-  const BUILD = 'v14';
+  const BUILD = 'v15';
   const LS_LOG = 'mindlock.log';
   const LS_CFG = 'mindlock.cfg';
   const LS_LOCKSHOT = 'mindlock.lockshot';    // data URL of a real lock-screen screenshot
@@ -18,7 +18,8 @@
     eventTitle: 'Do duo lingo',
     wallpaper: '',           // data URL, optional (rendered lock fallback)
     badgeX: 78,              // reveal badge position, % of width  (over the folder)
-    badgeY: 20               // reveal badge position, % of height
+    badgeY: 20,              // reveal badge position, % of height
+    edgeColor: ''            // sampled colour of the wallpaper bottom; blends the iOS home-indicator strip
   };
 
   const ZODIAC = [
@@ -145,6 +146,38 @@
     const el = $('#lock-shot');
     if (lockShot) { el.style.backgroundImage = `url("${lockShot}")`; el.hidden = false; }
     else { el.hidden = true; el.style.backgroundImage = ''; }
+  }
+
+  // Blend the iOS standalone home-indicator strip: paint it the colour of the
+  // very bottom of the lock wallpaper, so the unavoidable safe-area bar disappears.
+  function applyEdge(color) {
+    if (!color) return;
+    document.documentElement.style.setProperty('--edge', color);
+    const m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', color);
+  }
+  function sampleEdge(dataURL, cb) {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = 20; c.height = 20;
+        const ctx = c.getContext('2d');
+        const sh = Math.max(1, Math.round(img.height * 0.03));
+        ctx.drawImage(img, 0, img.height - sh, img.width, sh, 0, 0, 20, 20);
+        const d = ctx.getImageData(0, 0, 20, 20).data;
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+        cb(`rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`);
+      } catch { cb(null); }
+    };
+    img.onerror = () => cb(null);
+    img.src = dataURL;
+  }
+  // Pick the best source (lock screenshot first, else wallpaper) and recompute the strip colour.
+  function computeEdge() {
+    const src = lockShot || cfg.wallpaper || '';
+    if (!src) { cfg.edgeColor = ''; saveCfg(); document.documentElement.style.setProperty('--edge', '#000'); return; }
+    sampleEdge(src, color => { if (color) { cfg.edgeColor = color; saveCfg(); applyEdge(color); } });
   }
 
   // ---------- passcode ----------
@@ -370,6 +403,7 @@
   function init() {
     applyCfgToUI();
     applyLockShot();
+    applyEdge(cfg.edgeColor);
     tick();
     setInterval(tick, 15000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
@@ -430,7 +464,7 @@
     $('#set-lockshot').addEventListener('change', e => {
       const f = e.target.files && e.target.files[0]; if (!f) return;
       fileToScaledDataURL(f, 1100, url => {
-        if (tryStore(LS_LOCKSHOT, url)) { lockShot = url; applyLockShot(); $('#set-lockshot-state').textContent = 'uploaded ✓'; }
+        if (tryStore(LS_LOCKSHOT, url)) { lockShot = url; applyLockShot(); computeEdge(); $('#set-lockshot-state').textContent = 'uploaded ✓'; }
       });
     });
     $('#set-homeshot').addEventListener('change', e => {
@@ -456,7 +490,7 @@
     });
     $('#set-lockshot-clear').addEventListener('click', e => {
       e.preventDefault(); lockShot = ''; try { localStorage.removeItem(LS_LOCKSHOT); } catch {}
-      applyLockShot(); $('#set-lockshot-state').textContent = 'none';
+      applyLockShot(); computeEdge(); $('#set-lockshot-state').textContent = 'none';
     });
     $('#set-homeshot-clear').addEventListener('click', e => {
       e.preventDefault(); homeShot = ''; try { localStorage.removeItem(LS_HOMESHOT); } catch {}
@@ -465,10 +499,10 @@
 
     $('#set-wallpaper').addEventListener('change', e => {
       const f = e.target.files && e.target.files[0]; if (!f) return;
-      fileToScaledDataURL(f, 1100, url => { cfg.wallpaper = url; saveCfg(); applyCfgToUI(); });
+      fileToScaledDataURL(f, 1100, url => { cfg.wallpaper = url; saveCfg(); applyCfgToUI(); computeEdge(); });
     });
     $('#set-wallpaper-clear').addEventListener('click', e => {
-      e.preventDefault(); cfg.wallpaper = ''; saveCfg(); applyCfgToUI();
+      e.preventDefault(); cfg.wallpaper = ''; saveCfg(); applyCfgToUI(); computeEdge();
     });
     $('#set-badge-clear').addEventListener('click', e => { e.preventDefault(); clearBadge(); });
     $('#set-clear').addEventListener('click', e => {
