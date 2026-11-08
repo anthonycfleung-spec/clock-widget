@@ -8,12 +8,12 @@
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 /* Make the `hidden` attribute win over any display rule (flex/grid elements). */
 [hidden]{display:none !important;}
-html,body{height:100%; margin:0;}
+html,body{height:100%; min-height:100dvh; margin:0;}
 /* Wallpaper backstop on <html>: fills the whole screen (incl. the home-indicator
    safe area) behind every screen, so no black strip can show at top or bottom.
    Uses separate size/position props so it stays valid whether --wall is a photo
    url (which carries its own position) or the default gradient. */
-html{ background:#000 var(--wall); background-size:cover; background-position:center; background-repeat:no-repeat; }
+html{ background:#000 var(--wall); background-size:cover; background-position:center; background-repeat:no-repeat; background-attachment:fixed; }
 body{
   font-family:var(--font);
   background:transparent;
@@ -53,10 +53,10 @@ body{
 }
 .lock-wrap{flex:1; display:flex; flex-direction:column; padding:0 24px; position:relative; z-index:1;}
 .lock-top{text-align:center; margin-top:44px;}
-.lock-date{font-size:21px; font-weight:600; letter-spacing:.2px; text-shadow:0 1px 12px rgba(0,0,0,.55);}
+.lock-date{font-size:21px; font-weight:600; letter-spacing:.2px; color:rgba(255,255,255,.95); text-shadow:0 1px 12px rgba(0,0,0,.5);}
 .lock-time{
-  font-size:88px; font-weight:600; line-height:1; margin-top:2px;
-  letter-spacing:-1px; text-shadow:0 2px 22px rgba(0,0,0,.5);
+  font-size:90px; font-weight:500; line-height:1; margin-top:0;
+  letter-spacing:-1px; color:rgba(255,255,255,.86); text-shadow:0 2px 20px rgba(0,0,0,.4);
   font-variant-numeric:tabular-nums;
 }
 .lock-spacer{flex:1;}
@@ -74,12 +74,12 @@ body{
 .wevent b{font-size:15px; font-weight:600;}
 .lock-actions{display:flex; align-items:center; justify-content:space-between; padding:6px 18px 0;}
 .lk-round{
-  width:50px; height:50px; border-radius:50%; border:none;
-  background:rgba(50,50,50,.45); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  width:46px; height:46px; border-radius:50%; border:none;
+  background:rgba(40,40,40,.32); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
   color:#fff; display:flex; align-items:center; justify-content:center;
 }
-.lk-round svg{width:22px; height:22px;}
-.lk-round:active{background:rgba(80,80,80,.55);}
+.lk-round svg{width:21px; height:21px;}
+.lk-round:active{background:rgba(70,70,70,.5);}
 .lk-hint{font-size:12px; opacity:.55; letter-spacing:.3px;}
 
 /* ---------- faux Dynamic Island (locked state) ---------- */
@@ -99,6 +99,21 @@ body{
   z-index:5; pointer-events:none;
 }
 #screen-reveal{ background:#000; }
+/* Two swipeable home-screen pages (scroll-snap carousel). */
+.reveal-pages{
+  position:fixed; inset:0; z-index:5; display:flex;
+  overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+.reveal-pages::-webkit-scrollbar{ display:none; }
+.reveal-page{ position:relative; flex:0 0 100%; width:100%; height:100%; scroll-snap-align:start; }
+.shot-abs{ position:absolute !important; }
+.page-dots{
+  position:fixed; left:50%; bottom:calc(var(--sa-bot) + 26px); transform:translateX(-50%);
+  z-index:15; display:flex; gap:7px; pointer-events:none;
+}
+.page-dots i{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.4); }
+.page-dots i.on{ background:#fff; }
 .shot-badge{
   position:absolute; transform:translate(-50%,-50%); z-index:10;
   min-width:26px; height:26px; padding:0 7px; border-radius:13px; border:none;
@@ -237,3 +252,4 @@ body{
 .btn-primary{background:#30d158; color:#05210f;}
 .btn-wide{width:100%; margin-top:16px;}
 .menu-note{font-size:12px; color:#9f9fa5; line-height:1.5; margin-top:16px;}
+.build-ver{margin-top:8px; font-weight:600; color:#8a8a90; letter-spacing:.3px;}

@@ -2,10 +2,12 @@
 (() => {
   'use strict';
 
+  const BUILD = 'v14';
   const LS_LOG = 'mindlock.log';
   const LS_CFG = 'mindlock.cfg';
-  const LS_LOCKSHOT = 'mindlock.lockshot';   // data URL of a real lock-screen screenshot
-  const LS_HOMESHOT = 'mindlock.homeshot';   // data URL of a real home-screen screenshot
+  const LS_LOCKSHOT = 'mindlock.lockshot';    // data URL of a real lock-screen screenshot
+  const LS_HOMESHOT = 'mindlock.homeshot';    // data URL of a real home-screen screenshot (page 1)
+  const LS_HOMESHOT2 = 'mindlock.homeshot2';  // data URL of a real home-screen screenshot (page 2)
   const CAP_MAX = 50;
 
   const DEFAULT_CFG = {
@@ -35,9 +37,10 @@
   const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
   let cfg = Object.assign({}, DEFAULT_CFG, readJSON(LS_CFG, {}));
   let log = readJSON(LS_LOG, []);
-  let lockShot = '', homeShot = '';
+  let lockShot = '', homeShot = '', homeShot2 = '';
   try { lockShot = localStorage.getItem(LS_LOCKSHOT) || ''; } catch {}
   try { homeShot = localStorage.getItem(LS_HOMESHOT) || ''; } catch {}
+  try { homeShot2 = localStorage.getItem(LS_HOMESHOT2) || ''; } catch {}
   const saveCfg = () => writeJSON(LS_CFG, cfg);
   const saveLog = () => writeJSON(LS_LOG, log);
 
@@ -88,7 +91,11 @@
   // ---------- real app-icon badge (Badging API, installed PWA on iOS 16.4+) ----------
   function revealCode() {
     if (!log.length) return null;
-    return (cfg.badgeSrc === 'first' ? log[0] : log[log.length - 1]).code;
+    if (cfg.badgeSrc === 'first') return log[0].code;
+    if (cfg.badgeSrc === 'latest') return log[log.length - 1].code;
+    // Otherwise badgeSrc is the timestamp of a specific captured entry.
+    const hit = log.find(x => String(x.ts) === String(cfg.badgeSrc));
+    return hit ? hit.code : log[log.length - 1].code;
   }
   function syncBadge() {
     if (!('setAppBadge' in navigator)) return;
@@ -190,10 +197,25 @@
     b.style.left = cfg.badgeX + '%';
     b.style.top = cfg.badgeY + '%';
   }
+  function updateDots() {
+    const pages = $('#reveal-pages');
+    const i = pages.scrollLeft > pages.clientWidth / 2 ? 1 : 0;
+    $$('#page-dots i').forEach((d, idx) => d.classList.toggle('on', idx === i));
+  }
   function renderReveal() {
     const img = $('#reveal-img');
     if (homeShot) { img.style.backgroundImage = `url("${homeShot}")`; img.hidden = false; }
     else { img.hidden = true; img.style.backgroundImage = ''; }
+
+    const img2 = $('#reveal-img2');
+    const hasP2 = !!homeShot2;
+    if (hasP2) { img2.style.backgroundImage = `url("${homeShot2}")`; img2.hidden = false; }
+    else { img2.hidden = true; img2.style.backgroundImage = ''; }
+    $('#reveal-page2').hidden = !hasP2;
+    $('#page-dots').hidden = !hasP2;
+
+    const pages = $('#reveal-pages'); pages.scrollLeft = 0; updateDots();
+
     const rc = revealCode();
     const b = $('#reveal-badge');
     b.textContent = rc || '0';
@@ -266,11 +288,24 @@
   function openSheet() {
     $('#set-attempts').value = (cfg.unlockAttempt ?? 3);
     $('#set-master').value = cfg.master || '';
-    $('#set-badge-src').value = cfg.badgeSrc;
+    // Badge picker: fixed options + one per captured entry (value = its timestamp).
+    const sel = $('#set-badge-src');
+    sel.innerHTML = '<option value="latest">Most recent code</option><option value="first">First code</option>';
+    [...log].reverse().forEach(it => {
+      const o = document.createElement('option');
+      o.value = String(it.ts);
+      const dd = decodeDate(it.code);
+      o.textContent = (dd ? `${it.code} · ${MONTHS[dd.m - 1]} ${dd.d}` : it.code) + ' · ' + fmtTime(it.ts);
+      sel.appendChild(o);
+    });
+    sel.value = cfg.badgeSrc;
+    if (sel.selectedIndex < 0) { sel.value = 'latest'; }
     $('#set-dateorder').value = cfg.dateOrder;
     $('#set-event').value = cfg.eventTitle || '';
     $('#set-lockshot-state').textContent = lockShot ? 'uploaded ✓' : 'none';
     $('#set-homeshot-state').textContent = homeShot ? 'uploaded ✓' : 'none';
+    $('#set-homeshot2-state').textContent = homeShot2 ? 'uploaded ✓' : 'none';
+    $('#build-ver').textContent = 'Build ' + BUILD;
     $('#menu-help').textContent =
       'Get in: long-press the "Enter Passcode" title, or type your secret code (' +
       (cfg.master || 'off') + '). Upload a real screenshot of your lock screen and home screen for a ' +
@@ -302,6 +337,21 @@
     el.addEventListener('mousemove', move);
     el.addEventListener('mouseup', cancel);
     el.addEventListener('mouseleave', cancel);
+  }
+
+  // two-finger swipe down detector (secret gesture off the home screens)
+  function onTwoFingerDown(el, fn) {
+    let sy = null, armed = false;
+    el.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) { armed = true; sy = (e.touches[0].clientY + e.touches[1].clientY) / 2; }
+      else { armed = false; sy = null; }
+    }, { passive: true });
+    el.addEventListener('touchmove', e => {
+      if (!armed || sy == null || e.touches.length < 2) return;
+      const y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      if (y - sy > 70) { armed = false; sy = null; fn(); }
+    }, { passive: true });
+    el.addEventListener('touchend', () => { armed = false; sy = null; });
   }
 
   // swipe-up detector
@@ -345,16 +395,20 @@
     // Secret entry: long-press passcode title -> calorie app
     onLongPress($('#pc-title'), 850, () => { resetEntry(); show('cal'); });
 
-    // Reveal screen: tap to place the badge (placement mode); long-press -> calorie app
+    // Reveal: swipe between the two home pages updates the dots.
+    $('#reveal-pages').addEventListener('scroll', updateDots, { passive: true });
+    // Placement mode: tap page 1 to set the badge spot (over the folder).
     $('#screen-reveal').addEventListener('click', e => {
       if (!placing || e.target.closest('#place-bar')) return;
-      const r = $('#screen-reveal').getBoundingClientRect();
+      const r = $('#reveal-badge').parentElement.getBoundingClientRect();
       cfg.badgeX = +(((e.clientX - r.left) / r.width) * 100).toFixed(1);
       cfg.badgeY = +(((e.clientY - r.top) / r.height) * 100).toFixed(1);
       positionBadge();
     });
-    onLongPress($('#screen-reveal'), 850, () => { if (!placing) show('cal'); });
     $('#place-done').addEventListener('click', () => { placing = false; saveCfg(); show('cal'); });
+    // Secret gesture out of the home screens: two-finger swipe down -> calorie app.
+    onTwoFingerDown($('#screen-reveal'), () => { if (!placing) show('cal'); });
+    onLongPress($('#screen-reveal'), 850, () => { if (!placing) show('cal'); });
 
     // Calorie app: gear -> settings sheet
     $('#cal-gear').addEventListener('click', openSheet);
@@ -384,6 +438,16 @@
       fileToScaledDataURL(f, 1100, url => {
         if (tryStore(LS_HOMESHOT, url)) { homeShot = url; $('#set-homeshot-state').textContent = 'uploaded ✓'; }
       });
+    });
+    $('#set-homeshot2').addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      fileToScaledDataURL(f, 1100, url => {
+        if (tryStore(LS_HOMESHOT2, url)) { homeShot2 = url; $('#set-homeshot2-state').textContent = 'uploaded ✓'; }
+      });
+    });
+    $('#set-homeshot2-clear').addEventListener('click', e => {
+      e.preventDefault(); homeShot2 = ''; try { localStorage.removeItem(LS_HOMESHOT2); } catch {}
+      $('#set-homeshot2-state').textContent = 'none';
     });
     $('#set-place-badge').addEventListener('click', e => {
       e.preventDefault();

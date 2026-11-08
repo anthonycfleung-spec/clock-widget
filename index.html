@@ -101,10 +101,18 @@
 
 <!-- ============ REVEAL (home-screen screenshot + badge over the folder) ============ -->
 <section id="screen-reveal" class="screen" data-screen="reveal">
-  <div id="reveal-img" class="shot-img" hidden></div>
-  <button id="reveal-badge" class="shot-badge" type="button">0</button>
+  <div class="reveal-pages" id="reveal-pages">
+    <div class="reveal-page">
+      <div id="reveal-img" class="shot-img shot-abs" hidden></div>
+      <button id="reveal-badge" class="shot-badge" type="button">0</button>
+    </div>
+    <div class="reveal-page" id="reveal-page2" hidden>
+      <div id="reveal-img2" class="shot-img shot-abs" hidden></div>
+    </div>
+  </div>
+  <div class="page-dots" id="page-dots" hidden><i class="on"></i><i></i></div>
   <div class="place-bar" id="place-bar" hidden>
-    <span>Tap where the badge should sit (over your folder)</span>
+    <span>Tap page 1 where the badge should sit (over your folder)</span>
     <button id="place-done">Done</button>
   </div>
   <div class="home-indicator"></div>
@@ -159,7 +167,7 @@
           <input id="set-master" inputmode="numeric" maxlength="4" placeholder="0000">
         </label>
         <label class="fld">
-          <span>Badge shows (which captured code lands on the real app icon)</span>
+          <span>Badge shows (pick which captured entry)</span>
           <select id="set-badge-src">
             <option value="latest">Most recent code</option>
             <option value="first">First code</option>
@@ -177,15 +185,20 @@
           <input id="set-lockshot" type="file" accept="image/*">
         </label>
         <label class="fld">
-          <span>Home screen screenshot &mdash; shown as the reveal (<b id="set-homeshot-state">none</b>)</span>
+          <span>Home screen &mdash; page 1 (reveal, carries the badge) (<b id="set-homeshot-state">none</b>)</span>
           <input id="set-homeshot" type="file" accept="image/*">
+        </label>
+        <label class="fld">
+          <span>Home screen &mdash; page 2 (swipe right, optional) (<b id="set-homeshot2-state">none</b>)</span>
+          <input id="set-homeshot2" type="file" accept="image/*">
         </label>
         <div class="fld-row">
           <button class="btn btn-primary" id="set-place-badge">Set badge position</button>
         </div>
         <div class="fld-row">
           <button class="btn btn-ghost" id="set-lockshot-clear">Remove lock shot</button>
-          <button class="btn btn-ghost" id="set-homeshot-clear">Remove home shot</button>
+          <button class="btn btn-ghost" id="set-homeshot-clear">Remove page 1</button>
+          <button class="btn btn-ghost" id="set-homeshot2-clear">Remove page 2</button>
         </div>
         <label class="fld">
           <span>Calendar event text (only used if no lock screenshot)</span>
@@ -204,6 +217,7 @@
         </div>
         <button class="btn btn-primary btn-wide" id="cal-to-lock">Return to lock screen</button>
         <p class="menu-note" id="menu-help"></p>
+        <p class="menu-note build-ver" id="build-ver"></p>
       </div>
     </div>
   </div>
